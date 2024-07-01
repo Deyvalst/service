@@ -1,1 +1,5 @@
-Front-end implementation of "bar reserving service".
+Front-end implementation of "bar reserving service":
+- html content (patially finished)
+- bootstrap style (implemented)
+- reactjs (planned)
+- redux (planned)
