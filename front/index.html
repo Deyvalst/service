@@ -8,19 +8,194 @@
   <!-- <script src="bootstrap.min.js"></script> -->
   <script src="included/babel.min.js"></script>
   <script type="text/babel" data-type="module">
+    //import { useState } from 'https://esm.sh/react?dev';
     import React, { StrictMode } from 'https://esm.sh/react?dev';
     import { createRoot } from 'https://esm.sh/react-dom/client?dev';
 
     export default function Entire() {
-      return (
-        <a href="index.html" className="text-decoration-none">Enjoy ReactJS!</a>
+	  let order_slot_name = revealData("slot_name"), 
+	      order_date = revealData("fit_date"), 
+		  order_time = revealData("fit_time"),
+		  slots_list = revealData("slots_info");
+
+	  return (
+	    <main className="container">
+		  <EnteringPanel />
+	      <PrivateCabinet orderSlotName={order_slot_name} orderDate={order_date} orderTime={order_time} />
+		  <PrepareOrder options_list={slots_list} />
+        </main>
       );
     }
+	
+//	sign-related panel via customer data handling, register/authorize state included, opens with application start 
+	function EnteringPanel() {
+	  return (
+	    <><div className="row">
+          <div className="h4 col">
+            Введите данные
+          </div>
+          <EnteringStateButton />
+        </div>
+		<form action="empty.php" method="post">
+          <p className="form-floating">
+          <input 
+		    name="customer_label"
+            type="text" 
+		    className="form-control"
+            required={true} 
+		    maxLength={20} 
+		    minLength={4}
+            pattern="[a-zA-Z0-9_]*" 
+		    placeholder="Псевдоним" />
+          <label htmlFor="customer_label">Псевдоним</label></p>
+          <p className="form-floating">
+          <input 
+		    name="customer_code"
+            type="password" 
+		    className="form-control"
+            required={true} 
+		    minLength={5}
+            maxLength={25} 
+		    placeholder="Пароль" />
+          <label htmlFor="customer_code">Пароль</label></p>
+          <p className="form-floating">
+          <input
+            name="customer_name" 
+		    type="text" 
+		    className="form-control special"
+			required={true} 
+		    placeholder="Наименование" 
+		    maxLength={40} 
+		    pattern="[^0-9]*" />
+          <label htmlFor="customer_name">Наименование</label></p>
+          <p className="form-floating">
+          <input 
+		    name="customer_phone" 
+		    type="tel" 
+		    className="form-control special" 
+			required={true} 
+		    placeholder="Телефон" 
+		    minLength={8} 
+		    pattern="[0-9-]*" />
+          <label htmlFor="customer_phone">Телефон</label></p>
+          <h6 id="state_info">Регистрация</h6>
+          <EnterButton />
+        </form></>
+      );
+	}
+
+	function EnterButton() {
+	  return (
+	    <button className="btn btn-primary" type="submit">Продолжить</button>
+      );
+	}
+
+	function EnteringStateButton() {
+	  return (
+	    <div className="col text-end switch">
+            <button className="btn btn-primary rounded-circle p-1 lh-2" type="button" onClick={AlterState}>
+              <svg 
+			    xmlns="http://www.w3.org/2000/svg" 
+				width="24" 
+				height="24" 
+				fill="currentColor" 
+				className="bi bi-play-fill" 
+				viewBox="0 0 16 16" >
+              <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+            </svg></button>
+          <span> <u>Авторизация</u></span>
+        </div>
+      );
+	}
+
+//	section with current order's details and cancel option, shows after authorization when active order is there		
+	function PrivateCabinet({orderSlotName, orderDate, orderTime}) {
+	  return (
+	    <div id="private_cabinet">
+		  <h4>Личный кабинет</h4>
+		  <ul>
+            <li>Назначен: {orderSlotName}</li>
+            <li>Время: {orderDate} - {orderTime}</li>
+          </ul>
+          <RejectOrderButton />
+		</div>
+      );
+	}
+	
+	function RejectOrderButton() {
+	  return (
+	    <button 
+		  form="prepare_order" 
+		  className="btn btn-primary" 
+		  type="reset" 
+		  onClick={() => ToggleOptions(false)}>Освободить</button>
+	  );
+	}
+
+//	list of available to reserve slots, shows after registration
+	function PrepareOrder({options_list}) {
+	  var options = options_list.map(each_slot => 
+	  <option value={each_slot[1]}>{each_slot[0]}</option>);
+
+	  return (
+	    <form id="prepare_order" action="empty.php" method="post">
+          <h4>Каталог выбора</h4>
+          <select 
+		    id="order_options" 
+			className="form-select-lg mb-3" 
+			onChange={() => ToggleOptions(true)} 
+			required={true} >
+            <option>Подобрать</option>
+			{options}
+          </select>
+		  <ConfirmOrderPanel />
+	    </form>
+	  );
+	}
+
+//	confirmation panel to define date and time then send order, shows after choosing slot	
+	function ConfirmOrderPanel() {
+	  return (
+	    <dialog id="confirm" className="bg-body-secondary">
+        <h4>Назначить бронирование</h4>
+          <div className="row">
+            <div className="col">
+              <input type="date" className="form-control" required />
+            </div></div>
+          <div className="row">
+            <div className="col">
+              <input 
+			    type="time" 
+				className="form-control" 
+				min="12:00" 
+				max="22:00" 
+				required={true} />
+            </div></div>
+          <div className="row">
+            <div className="col"><p>
+              <ResetOrderButton />
+              <FireOrderButton />
+            </p></div></div>
+        </dialog>
+	  );
+	}	
+	
+	function ResetOrderButton() {
+	  return (
+	    <button className="btn btn-secondary" type="reset" onClick={() => ToggleOptions(false)}>Отмена</button>
+	  );
+	}
+	
+	function FireOrderButton() {
+	  return (
+	    <button className="btn btn-success" value="new_order" type="submit">Забронировать</button>
+	  );
+	}
 	
     const root = createRoot(document.getElementById('entire'));
     root.render(
       <StrictMode>
-        <Entire />
+          <Entire />
       </StrictMode>
     );
   </script>
@@ -39,102 +214,44 @@
         x.required = false;
       }
 	}
-	//function revealData() {}
+	
+	//	held as internal data api for service
+	function revealData(argument) {
+	  filler = null;
+	  if (argument == "slot_name") {
+	    filler = "Малый-1";
+	  }
+	  else if (argument == "fit_date") {
+	    filler = "01.07.2024";
+	  }
+	  else if (argument == "fit_time") {
+	    filler = "17:00";
+	  }
+	  else if (argument == "slots_info") {
+	    filler = [
+	      ["Большой-1",	"big1"],
+	      ["Большой-2",	"big2"],
+	      ["Большой-3",	"big3"],
+	      ["Средний-1",	"mid1"],
+	      ["Средний-2",	"mid2"],
+	      ["Средний-3",	"mid3"],
+	      ["Средний-4",	"mid4"],
+	      ["Средний-5",	"mid5"],
+	      ["Средний-6",	"mid6"],
+	      ["Малый-1",	"small1"],
+	      ["Малый-2",	"small2"],
+	      ["Малый-3",	"small3"],
+	      ["Малый-4",	"small4"],
+	      ["Малый-5",	"small5"],
+	      ["Малый-6",	"small6"],
+	      ["Малый-7",	"small7"]
+	    ];
+	  }
+	  return filler;
+	}
   </script>
 </head>
 <body>
-  <div id="entire"></div>
-
-  <main class="container">
-<!-- 
- sign-related panel via customer data handling, register/authorize state included, opens with application start 
--->
-    <p><div class="row">
-      <div class="col">
-        <h4>Введите данные</h4>
-      </div>
-      <div class="col text-end switch">
-        <button class="btn btn-primary rounded-circle p-1 lh-2" type="button" onclick="AlterState();">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
-        <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
-        </svg></button>
-        <u>Авторизация</u>
-      </div></div></p>
-    <form action="empty.php" method="post">  
-      <p class="form-floating">
-      <input name="customer_label" type="text" class="form-control" required autocomplete="username" maxlength=20 minlength=4 pattern="[a-zA-Z0-9_]*" placeholder="Псевдоним">
-      <label for="customer_label">Псевдоним</label></p>
-      <p class="form-floating">
-      <input name="customer_code" type="password" class="form-control" required minlength=5 maxlength=25 placeholder="Пароль">
-      <label for="customer_code">Пароль</label></p>
-      <p class="form-floating">
-      <input name="customer_name" type="text" class="form-control special" placeholder="Наименование" maxlength=40 pattern="[^0-9]*">
-      <label for="customer_name">Наименование</label></p>
-      <p class="form-floating">
-      <input name="customer_phone" type="tel" class="form-control special" placeholder="Телефон" minlength=8 pattern="[0-9-]*">
-      <label for="customer_phone">Телефон</label></p>
-      <h6 id="state_info">Регистрация</h6>
-      <input class="btn btn-primary" value="Продолжить" type="submit">
-    </form>
-	
-<!-- 
- list of available to reserve slots, shows after registration
--->
-    <form id="prepare_order" action="empty.php" method="post"><hr>
-      <h4>Каталог выбора</h4>
-      <select id="order_options" class="form-select-lg mb-3" onchange="ToggleOptions(true);" required>
-        <option>Подобрать</option>
-        <option value="big1">Большой-1 (6 мест)</option>
-        <option value="big2">Большой-2 (6 мест)</option>
-        <option value="big3">Большой-3 (6 мест)</option>
-        <option value="mid1">Средний-1 (3 места)</option>
-        <option value="mid2">Средний-2 (3 места)</option>
-        <option value="mid3">Средний-3 (3 места)</option>
-        <option value="mid4">Средний-4 (3 места)</option>
-        <option value="mid5">Средний-5 (3 места)</option>
-        <option value="mid6">Средний-6 (3 места)</option>
-        <option value="small1">Малый-1 (2 места)</option>
-        <option value="small2">Малый-2 (2 места)</option>
-        <option value="small3">Малый-3 (2 места)</option>
-        <option value="small4">Малый-4 (2 места)</option>
-        <option value="small5">Малый-5 (2 места)</option>
-        <option value="small6">Малый-6 (2 места)</option>
-        <option value="small7">Малый-7 (2 места)</option>
-      </select>
-		
-<!-- 
- confirmation panel to define date and time then send order, shows after choosing slot
--->
-      <dialog id="confirm" class="bg-body-secondary">
-        <form method="dialog">
-        <h4>Назначить бронирование</h4>
-          <div class="row">
-            <div class="col">
-              <input type="date" class="form-control" required>
-            </div></div>
-          <div class="row">
-            <div class="col">
-              <input type="time" class="form-control" min="12:00" max="22:00" required>
-            </div></div>
-          <p><div class="row">
-            <div class="col">
-              <button class="btn btn-secondary" type="reset" onclick="ToggleOptions(false);">Отмена</button>
-              <button class="btn btn-success" value="new_order" type="submit">Забронировать</button>
-            </div></div></p>
-        </form></dialog>
-    <hr></form>
-
-<!--
- section with current order's details and cancel option, shows after authorization when active order is there
--->
-    <div id="private_cabinet">
-      <h4>Личный кабинет</h4>
-      <ul>
-        <li>Назначен: Малый-1</li>
-        <li>Время: 01.07.24 - 17:00</li>
-      </ul>
-      <button form="prepare_order" class="btn btn-primary" type="reset" onclick="ToggleOptions(false);">Освободить</button>
-    </div>
-  </main>
+  <p><div id="entire"></div></p>
 </body>
 </html>
