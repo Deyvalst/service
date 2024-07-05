@@ -8,156 +8,214 @@
   <!-- <script src="bootstrap.min.js"></script> -->
   <script src="included/babel.min.js"></script>
   <script type="text/babel" data-type="module">
-    //import { useState } from 'https://esm.sh/react?dev';
-    import React, { StrictMode } from 'https://esm.sh/react?dev';
+    import React, { useState, StrictMode } from 'https://esm.sh/react?dev';
     import { createRoot } from 'https://esm.sh/react-dom/client?dev';
 
     export default function Entire() {
-	  let order_slot_name = revealData("slot_name"), 
-	      order_date = revealData("fit_date"), 
-		  order_time = revealData("fit_time"),
-		  slots_list = revealData("slots_info");
+      var activeComponent = <EnteringPanel interaction={refreshContent} />;
+      const [component, setComponent] = useState(activeComponent);
 
-	  return (
-	    <main className="container">
-		  <EnteringPanel />
-	      <PrivateCabinet orderSlotName={order_slot_name} orderDate={order_date} orderTime={order_time} />
-		  <PrepareOrder options_list={slots_list} />
+      function refreshContent(request) {
+        if (request == "enter") {
+          activeComponent = <PrepareOrder interaction={refreshContent} />;
+        } 
+        else if (request == "reserve") {
+          activeComponent = <PrivateCabinet interaction={refreshContent} />;
+        }
+        else if (request == "") {
+          activeComponent = <EnteringPanel interaction={refreshContent} />;
+        }
+        setComponent(activeComponent);
+      }
+
+      return (
+        <main className="container">
+          {component}
         </main>
       );
     }
 	
 //	sign-related panel via customer data handling, register/authorize state included, opens with application start 
-	function EnteringPanel() {
-	  return (
-	    <><div className="row">
+    function EnteringPanel({interaction}) {
+      const [altered, setAltered] = useState(false);
+
+      function buttonEffect(argument) {
+        interaction(argument);
+      }
+      function switchPanelState(mode) {
+        setAltered(mode);
+      }
+
+      return (
+        <><div className="row">
           <div className="h4 col">
             Введите данные
           </div>
-          <EnteringStateButton />
+          <EnteringStateButton effect={switchPanelState}/>
         </div>
-		<form action="empty.php" method="post">
+        <form action="empty.php" method="post" id="entering">
           <p className="form-floating">
           <input 
-		    name="customer_label"
+            name="customer_label"
             type="text" 
-		    className="form-control"
+            className="form-control"
             required={true} 
-		    maxLength={20} 
-		    minLength={4}
+            maxLength={20} 
+            minLength={4}
             pattern="[a-zA-Z0-9_]*" 
-		    placeholder="Псевдоним" />
+            placeholder="Псевдоним" />
           <label htmlFor="customer_label">Псевдоним</label></p>
           <p className="form-floating">
           <input 
-		    name="customer_code"
+            name="customer_code"
             type="password" 
-		    className="form-control"
+            className="form-control"
             required={true} 
-		    minLength={5}
+            minLength={5}
             maxLength={25} 
-		    placeholder="Пароль" />
+            placeholder="Пароль" />
           <label htmlFor="customer_code">Пароль</label></p>
           <p className="form-floating">
           <input
             name="customer_name" 
-		    type="text" 
-		    className="form-control special"
-			required={true} 
-		    placeholder="Наименование" 
-		    maxLength={40} 
-		    pattern="[^0-9]*" />
+            type="text" 
+            className="form-control special"
+            required={true} 
+            placeholder="Наименование" 
+            maxLength={40} 
+            pattern="[^0-9]*" />
           <label htmlFor="customer_name">Наименование</label></p>
           <p className="form-floating">
           <input 
-		    name="customer_phone" 
-		    type="tel" 
-		    className="form-control special" 
-			required={true} 
-		    placeholder="Телефон" 
-		    minLength={8} 
-		    pattern="[0-9-]*" />
+            name="customer_phone" 
+            type="tel" 
+            className="form-control special" 
+            required={true} 
+            placeholder="Телефон" 
+            minLength={8} 
+            pattern="[0-9-]*" />
           <label htmlFor="customer_phone">Телефон</label></p>
           <h6 id="state_info">Регистрация</h6>
-          <EnterButton />
+          <EnterButton effect={buttonEffect} activeState={altered} />
         </form></>
       );
-	}
+    }
 
-	function EnterButton() {
-	  return (
-	    <button className="btn btn-primary" type="submit">Продолжить</button>
+    function EnterButton({effect, activeState}) {
+      function handleTap() {
+        if(document.forms["entering"].checkValidity()) {
+          if(activeState) {
+            effect("reserve");
+          } 
+          else {
+            effect("enter");
+          }
+        } 
+        else {
+          document.forms["entering"].reportValidity();
+        }
+      }
+
+      return (
+        <button className="btn btn-primary" onClick={handleTap} type="submit">Продолжить</button>
       );
-	}
+    }
 
-	function EnteringStateButton() {
-	  return (
-	    <div className="col text-end switch">
-            <button className="btn btn-primary rounded-circle p-1 lh-2" type="button" onClick={AlterState}>
+    function EnteringStateButton({effect}) {
+      function handleTap(){
+        AlterState();
+        effect(true);		
+      }
+      return (
+        <div className="col text-end switch">
+            <button className="btn btn-primary rounded-circle p-1 lh-2" type="button" onClick={handleTap}>
               <svg 
-			    xmlns="http://www.w3.org/2000/svg" 
-				width="24" 
-				height="24" 
-				fill="currentColor" 
-				className="bi bi-play-fill" 
-				viewBox="0 0 16 16" >
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                fill="currentColor" 
+                className="bi bi-play-fill" 
+                viewBox="0 0 16 16" >
               <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
             </svg></button>
           <span> <u>Авторизация</u></span>
         </div>
       );
-	}
+    }
 
 //	section with current order's details and cancel option, shows after authorization when active order is there		
-	function PrivateCabinet({orderSlotName, orderDate, orderTime}) {
-	  return (
-	    <div id="private_cabinet">
-		  <h4>Личный кабинет</h4>
-		  <ul>
-            <li>Назначен: {orderSlotName}</li>
-            <li>Время: {orderDate} - {orderTime}</li>
+    function PrivateCabinet({interaction}) {
+      let order_slot_name = revealData("slot_name"), 
+        order_date = revealData("fit_date"), 
+        order_time = revealData("fit_time");
+
+      function buttonEffect(argument){
+        interaction(argument);
+      }
+
+      return (
+        <div id="private_cabinet">
+          <h4>Личный кабинет</h4>
+          <ul>
+            <li>Назначен: {order_slot_name}</li>
+            <li>Время: {order_date} - {order_time}</li>
           </ul>
-          <RejectOrderButton />
-		</div>
+          <RejectOrderButton effect={buttonEffect}/>
+        </div>
       );
-	}
+    }
 	
-	function RejectOrderButton() {
-	  return (
-	    <button 
-		  form="prepare_order" 
-		  className="btn btn-primary" 
-		  type="reset" 
-		  onClick={() => ToggleOptions(false)}>Освободить</button>
-	  );
-	}
+    function RejectOrderButton({effect}) {
+      function handleTap() {
+        effect("enter");
+      }
+
+      return (
+        <button 
+          form="prepare_order" 
+          className="btn btn-primary" 
+          type="reset" 
+          onClick={handleTap}>Освободить</button>
+      );
+    }
 
 //	list of available to reserve slots, shows after registration
-	function PrepareOrder({options_list}) {
-	  var options = options_list.map(each_slot => 
-	  <option value={each_slot[1]}>{each_slot[0]}</option>);
+    function PrepareOrder({interaction}) {
+      var slots_list = revealData("slots_info"),
+        options = slots_list.map(each_slot => <option value={each_slot[1]}>{each_slot[0]}</option>);
 
-	  return (
-	    <form id="prepare_order" action="empty.php" method="post">
+      function buttonEffect(argument){
+        interaction(argument);
+      }
+
+      return (
+        <form id="prepare_order" action="empty.php" method="post">
           <h4>Каталог выбора</h4>
           <select 
-		    id="order_options" 
-			className="form-select-lg mb-3" 
-			onChange={() => ToggleOptions(true)} 
-			required={true} >
+            id="order_options" 
+            className="form-select-lg mb-3" 
+            onChange={() => ToggleOptions(true)} 
+            required={true} >
             <option>Подобрать</option>
-			{options}
+            {options}
           </select>
-		  <ConfirmOrderPanel />
-	    </form>
-	  );
-	}
+          <dialog id="confirm" className="bg-body-secondary">
+          <ConfirmOrderPanel />
+          <p></p>
+          <div className="row">
+            <div className="col">
+              <ResetOrderButton />
+              <FireOrderButton effect={buttonEffect} />
+            </div></div>
+          </dialog>
+        </form>
+      );
+    }
 
 //	confirmation panel to define date and time then send order, shows after choosing slot	
-	function ConfirmOrderPanel() {
-	  return (
-	    <dialog id="confirm" className="bg-body-secondary">
-        <h4>Назначить бронирование</h4>
+    function ConfirmOrderPanel() {
+      return (
+        <><h4>Назначить бронирование</h4>
           <div className="row">
             <div className="col">
               <input type="date" className="form-control" required />
@@ -165,33 +223,36 @@
           <div className="row">
             <div className="col">
               <input 
-			    type="time" 
-				className="form-control" 
-				min="12:00" 
-				max="22:00" 
-				required={true} />
-            </div></div>
-          <div className="row">
-            <div className="col"><p>
-              <ResetOrderButton />
-              <FireOrderButton />
-            </p></div></div>
-        </dialog>
-	  );
-	}	
+                type="time" 
+                className="form-control" 
+                min="12:00" 
+                max="22:00" 
+                required={true} />
+            </div></div></>
+      );
+    }
+
+    function ResetOrderButton() {
+      return (
+        <button className="btn btn-secondary" type="reset" onClick={() => ToggleOptions(false)}>Отмена</button>
+      );
+    }
 	
-	function ResetOrderButton() {
-	  return (
-	    <button className="btn btn-secondary" type="reset" onClick={() => ToggleOptions(false)}>Отмена</button>
-	  );
-	}
-	
-	function FireOrderButton() {
-	  return (
-	    <button className="btn btn-success" value="new_order" type="submit">Забронировать</button>
-	  );
-	}
-	
+    function FireOrderButton({effect}) {
+      function handleTap() {
+        if(document.forms["prepare_order"].checkValidity()){
+          effect("reserve");
+        } 
+        else {
+          document.forms["prepare_order"].reportValidity();
+        }
+      }
+
+      return (
+        <button className="btn btn-success" value="new_order" type="submit" onClick={handleTap}>Забронировать</button>
+      );
+    }
+
     const root = createRoot(document.getElementById('entire'));
     root.render(
       <StrictMode>
@@ -203,8 +264,13 @@
 	//	show and hide present order confirmation's dialog
     function ToggleOptions(mode) {
       document.getElementById('order_options').disabled = mode;
-      document.getElementById('confirm').open = mode;
-	}
+      var orderModal = document.getElementById('confirm');
+      if (mode) {
+        orderModal.showModal();
+      } else {
+        orderModal.close();
+      }
+    }
 	//	switch sign-panel state to be used for authorization instead
     function AlterState() {
       document.getElementById('state_info').innerHTML = "Авторизация";
@@ -213,42 +279,42 @@
         x.disabled = true;
         x.required = false;
       }
-	}
+    }
 	
 	//	held as internal data api for service
-	function revealData(argument) {
-	  filler = null;
-	  if (argument == "slot_name") {
-	    filler = "Малый-1";
-	  }
-	  else if (argument == "fit_date") {
-	    filler = "01.07.2024";
-	  }
-	  else if (argument == "fit_time") {
-	    filler = "17:00";
-	  }
-	  else if (argument == "slots_info") {
-	    filler = [
-	      ["Большой-1",	"big1"],
-	      ["Большой-2",	"big2"],
-	      ["Большой-3",	"big3"],
-	      ["Средний-1",	"mid1"],
-	      ["Средний-2",	"mid2"],
-	      ["Средний-3",	"mid3"],
-	      ["Средний-4",	"mid4"],
-	      ["Средний-5",	"mid5"],
-	      ["Средний-6",	"mid6"],
-	      ["Малый-1",	"small1"],
-	      ["Малый-2",	"small2"],
-	      ["Малый-3",	"small3"],
-	      ["Малый-4",	"small4"],
-	      ["Малый-5",	"small5"],
-	      ["Малый-6",	"small6"],
-	      ["Малый-7",	"small7"]
-	    ];
-	  }
-	  return filler;
-	}
+    function revealData(argument) {
+      filler = null;
+      if (argument == "slot_name") {
+        filler = "Малый-1";
+      }
+      else if (argument == "fit_date") {
+        filler = "01.07.2024";
+      }
+      else if (argument == "fit_time") {
+        filler = "17:00";
+      }
+      else if (argument == "slots_info") {
+        filler = [
+          ["Большой-1",	"big1"],
+          ["Большой-2",	"big2"],
+          ["Большой-3",	"big3"],
+          ["Средний-1",	"mid1"],
+          ["Средний-2",	"mid2"],
+          ["Средний-3",	"mid3"],
+          ["Средний-4",	"mid4"],
+          ["Средний-5",	"mid5"],
+          ["Средний-6",	"mid6"],
+          ["Малый-1",	"small1"],
+          ["Малый-2",	"small2"],
+          ["Малый-3",	"small3"],
+          ["Малый-4",	"small4"],
+          ["Малый-5",	"small5"],
+          ["Малый-6",	"small6"],
+          ["Малый-7",	"small7"]
+        ];
+      }
+      return filler;
+    }
   </script>
 </head>
 <body>
