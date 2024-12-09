@@ -17,19 +17,20 @@
       const [component, setComponent] = useState(activeComponent);
 
       function refreshContent(request) {
+		var query_data = {"authorization": "Bearer "+userAccessToken};
         if (request == "enter") {
-          activeComponent = <PrepareOrder interaction={refreshContent} />;
-		  ServerCommand({method: "GET", url: "https://restroreserve-api.onrender.com/api/bookings/tables", data:{"date":"2024-12-09","time":"00:00"}},function(){setComponent(activeComponent);});
+		  activeComponent = <PrivateCabinet interaction={refreshContent} />;
+		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings", contentType: "application/json", headers:query_data},function(){setComponent(activeComponent);});
         } 
         else if (request == "reserve") {
-          activeComponent = <PrivateCabinet interaction={refreshContent} />;
-		  ServerCommand({method: "GET", url: "https://restroreserve-api.onrender.com/api/bookings"},function(){setComponent(activeComponent);});
+		  query_data = {"authorization": "Bearer "+userAccessToken};
+          activeComponent = <PrepareOrder interaction={refreshContent} />;
+		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings/tables", contentType: "application/json", headers:query_data, data:{date:current.toISOString().split("T")[0],time:"12:00"}},function(){setComponent(activeComponent);});
         }
         else if (request == "") {
           activeComponent = <EnteringPanel interaction={refreshContent} />;
 		  setComponent(activeComponent);
         }
-        console.log(response);
       }
 
       return (
@@ -61,12 +62,9 @@
           <p className="form-floating">
           <input 
             name="customer_email"
-            type="text" 
+            type="email" 
             className="form-control"
             required={true} 
-            maxLength={30} 
-            minLength={4}
-            pattern="[a-zA-Z0-9_@]*" 
             placeholder="Электронная почта" />
           <label htmlFor="customer_email">Электронная почта</label></p>
           <p className="form-floating">
@@ -75,8 +73,6 @@
             type="password" 
             className="form-control"
             required={true} 
-            minLength={5}
-            maxLength={25} 
             placeholder="Пароль" />
           <label htmlFor="customer_code">Пароль</label></p>
           <p className="form-floating">
@@ -85,9 +81,7 @@
             type="text" 
             className="form-control special"
             required={true} 
-            placeholder="Псевдоним" 
-            maxLength={15} 
-            pattern="[a-zA-Z0-9_]*" />
+            placeholder="Псевдоним" />
           <label htmlFor="customer_label">Псевдоним</label></p>
           <p className="form-floating">
           <input 
@@ -95,9 +89,7 @@
             type="tel" 
             className="form-control special" 
             required={true} 
-            placeholder="Телефон" 
-            minLength={8} 
-            pattern="[0-9\-]*" />
+            placeholder="Телефон" />
           <label htmlFor="customer_phone">Телефон</label></p>
           <h6 id="state_info">Регистрация</h6>
         </form>
@@ -107,28 +99,29 @@
     }
 
     function EnterButton({effect, activeState}) {
+	var query_data,enterform;
       function handleTap() {
-        if(document.forms["entering"].checkValidity()) {
+	  enterform = document.forms["entering"];
+        if(enterform.checkValidity()) {
           if(activeState) {
-//	!
-			ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/auth/login", data:'{"email": "myemail@list.ru", "password": "string"}', contentType: "application/json; charset=utf-8", error: function(result){
-				document.forms["entering"].reset(); 
+			query_data = '{"email":"'+enterform.customer_email.value+'", "password":"'+enterform.customer_code.value+'"}';
+			ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/auth/login", data:query_data, contentType: "application/json", error: function(result){
+				enterform.reset(); 
 				response = result; 
 				displayError(document.getElementsByClassName("alert")[0]);}},
-			function(){effect("reserve");});
+			function(){userAccessToken = response.token; effect("enter"); });
 		  } 
           else {
-//	!
-            ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/auth/register", data:'{"name": "user1589", "email": "myemail@list.ru", "password": "string", "phone": "87006005040"}', contentType: "application/json; charset=utf-8", error: function(result){
-				document.forms["entering"].reset(); 
+			query_data = '{"email":"'+enterform.customer_email.value+'", "password":"'+enterform.customer_code.value+'", "name":"'+enterform.customer_label.value+'", "phone":"'+enterform.customer_phone.value+'"}';
+            ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/auth/register", data:query_data, contentType: "application/json", error: function(result){
+				enterform.reset(); 
 				response = result; 
 				displayError(document.getElementsByClassName("alert")[0]);}},
-			function(){effect("enter");});
+			function(){userAccessToken = response.token; effect("reserve"); });
           }
-		  ServerCommand({method: "GET", url: "https://restroreserve-api.onrender.com/api/auth/me"},function(){});
 		} 
         else {
-          document.forms["entering"].reportValidity();
+          enterform.reportValidity();
         }
       }
 
@@ -161,14 +154,14 @@
 
 //	section with current order's details and cancel option, shows after authorization when active order is there		
     function PrivateCabinet({interaction}) {
-//	!
 	  let order_slot_name = "Пусто", 
         order_date = "Дата", 
         order_time = "00:00";
-		if (response === Object){
-			order_slot_name = response.a;
-			order_date = response.b;
-			order_time = response.c;
+		if (response.booking.length != 0){
+//	!
+			order_slot_name = response.booking[0].table;
+			order_date = response.booking[0].date;
+			order_time = response.booking[0].time;
 		}
 
       function buttonEffect(argument){
@@ -179,10 +172,11 @@
         <div id="private_cabinet">
           <h4>Личный кабинет</h4>
           <ul>
-            <li>Назначен: {order_slot_name}</li>
+            <li>Назначен: слот #{order_slot_name}</li>
             <li>Время: {order_date} - {order_time}</li>
           </ul>
           <RejectOrderButton effect={buttonEffect}/>
+		  <p /><div class="alert" role="alert"></div>
         </div>
       );
     }
@@ -190,8 +184,9 @@
     function RejectOrderButton({effect}) {
       function handleTap() {
 //	!
-		ServerCommand({method: "", url: "/api/bookings/{response}"},function(){});
-        effect("enter");
+		var slot_id = response.booking[0].id;
+		ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings/"+slot_id+"/delete"},function(){});
+		effect("enter");
       }
 
       return (
@@ -205,10 +200,12 @@
 
 //	list of available to reserve slots, shows after registration
     function PrepareOrder({interaction}) {
+      var slots_list = [];
+		if (typeof(response) != 'undefined'){
 //	!
-      var slots_list = [""],
-        options = slots_list.map(each_slot => <option value={each_slot[1]}>{each_slot[0]}</option>);
-
+		var slots_list = response.booking;
+		}
+		var options = slots_list.map(each_slot => <option value={each_slot.table}>#{each_slot.table} (x{each_slot.seats_count})</option>);
       function buttonEffect(argument){
         interaction(argument);
       }
@@ -243,7 +240,7 @@
         <><h4>Назначить бронирование</h4>
           <div className="row">
             <div className="col">
-              <input type="date" className="form-control" required />
+              <input type="date" className="form-control" min={current.toISOString().split("T")[0]} required />
             </div></div>
           <div className="row">
             <div className="col">
@@ -265,17 +262,18 @@
     }
 	
     function FireOrderButton({effect}) {
+		var query_data,orderform;
       function handleTap() {
-        if(document.forms["prepare_order"].checkValidity()){
-//	!
-		  ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings", data:'{"tableNumber": "-1", "date": "2024-12-31", "time": "00:00"}', contentType: "application/json; charset=utf-8", error: function(result){
-			document.forms["entering"].reset(); 
+		orderform = document.forms["prepare_order"];
+        if(orderform.checkValidity()){
+		query_data = '{"tableNumber": '+document.getElementById("order_options").value+', "date":'+orderform[0].value+', "time":'+orderform[1].value+'}';
+		  ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings", data:query_data, contentType: "application/json", headers:{"authorization": "Bearer "+userAccessToken}, error: function(result){ 
 			response = result; 
 			displayError(document.getElementsByClassName("alert")[0]);}},
 		  function(){effect("reserve");});
         } 
         else {
-          document.forms["prepare_order"].reportValidity();
+          orderform.reportValidity();
         }
       }
 
@@ -292,7 +290,7 @@
     );
   </script>
   <script>
-  let response;
+  let response,userAccessToken,current = new Date();
 	//	show and hide present order confirmation's dialog
     function ToggleOptions(mode) {
       document.getElementById('order_options').disabled = mode;
@@ -307,6 +305,8 @@
     function AlterState() {
       document.getElementById('state_info').innerHTML = "Авторизация";
       document.getElementsByClassName('switch')[0].hidden = true;
+	  document.getElementsByClassName("alert")[0].className = "alert";
+	  document.getElementsByClassName("alert")[0].textContent = "";
       for (var x of document.getElementsByClassName('special')){
         x.disabled = true;
         x.required = false;
@@ -315,17 +315,25 @@
 	
 	function ServerCommand(cmd,execute){
 	$.ajax(cmd).done(function( result ) {
-		execute();
 		response = result;
+		execute();
 	});
+	console.log(response);
 	}
 	
 	function displayError(indicator){
+		var result;
 		indicator.className = "alert alert-danger";
-		try{
-		indicator.textContent = response.responseJSON.error;}
-		catch(TypeError){
-		indicator.textContent = "Неопознанная ошибка!"}
+		if(typeof(response.responseJSON) != 'undefined'){
+		result = response.responseJSON;
+		if(typeof(result.error) == 'string'){
+			indicator.textContent = result.error;}
+		if(typeof(result.errors) == 'object'){
+			indicator.textContent = result.errors[0].message;}
+		}
+		else{
+			indicator.textContent = "Неопознанная ошибка!";
+		}
 	}
   </script>
 </head>
