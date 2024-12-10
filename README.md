@@ -1,7 +1,9 @@
 # service
 interactive application for slot reserving
 
-### progress:
-front-end: unfinished
-
-back-end: unfinished
+### features:
+- authorization panel
+- temporary session keep
+- panel for available slots list
+- slot reserve via modal
+- private cabinet and reserve cancelling option 
