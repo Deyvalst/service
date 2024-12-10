@@ -25,10 +25,9 @@
         else if (request == "reserve") {
 		  query_data = {"authorization": "Bearer "+userAccessToken};
           activeComponent = <PrepareOrder interaction={refreshContent} />;
-		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings/tables", contentType: "application/json", headers:query_data, data:{date:current.toISOString().split("T")[0],time:"12:00"}},function(){setComponent(activeComponent);});
+		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings/tables", contentType: "application/json", headers:query_data, data:{date: current.toISOString().split("T")[0],time:current.getHours().toString().padStart(2,0)+':'+current.getMinutes().toString().padStart(2,0)}},function(){setComponent(activeComponent);});
         }
-        else if (request == "") {
-          activeComponent = <EnteringPanel interaction={refreshContent} />;
+        else {
 		  setComponent(activeComponent);
         }
       }
@@ -158,10 +157,9 @@
         order_date = "Дата", 
         order_time = "00:00";
 		if (response.booking.length != 0){
-//	!
-			order_slot_name = response.booking[0].table;
+			order_slot_name = "слот #"+response.booking[0].table;
 			order_date = response.booking[0].date;
-			order_time = response.booking[0].time;
+			order_time = "("+response.booking[0].time+")";
 		}
 
       function buttonEffect(argument){
@@ -172,7 +170,7 @@
         <div id="private_cabinet">
           <h4>Личный кабинет</h4>
           <ul>
-            <li>Назначен: слот #{order_slot_name}</li>
+            <li>Назначен: {order_slot_name}</li>
             <li>Время: {order_date} - {order_time}</li>
           </ul>
           <RejectOrderButton effect={buttonEffect}/>
@@ -183,10 +181,11 @@
 	
     function RejectOrderButton({effect}) {
       function handleTap() {
-//	!
+		if(response.booking.length != 0){
 		var slot_id = response.booking[0].id;
-		ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings/"+slot_id+"/delete"},function(){});
-		effect("enter");
+		ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings/"+slot_id+"/delete", headers:{"authorization": "Bearer "+userAccessToken}},function(){});
+		}
+		effect("reserve");
       }
 
       return (
@@ -266,11 +265,11 @@
       function handleTap() {
 		orderform = document.forms["prepare_order"];
         if(orderform.checkValidity()){
-		query_data = '{"tableNumber": '+document.getElementById("order_options").value+', "date":'+orderform[0].value+', "time":'+orderform[1].value+'}';
+		query_data = '{"tableNumber": '+document.getElementById("order_options").value+', "date":"'+orderform[1].value+'", "time":"'+orderform[2].value+'"}';
 		  ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings", data:query_data, contentType: "application/json", headers:{"authorization": "Bearer "+userAccessToken}, error: function(result){ 
 			response = result; 
 			displayError(document.getElementsByClassName("alert")[0]);}},
-		  function(){effect("reserve");});
+		  function(){effect("enter");});
         } 
         else {
           orderform.reportValidity();
@@ -298,6 +297,7 @@
       if (mode) {
         orderModal.showModal();
       } else {
+		document.getElementsByClassName("alert")[0].textContent = "";
         orderModal.close();
       }
     }
@@ -318,7 +318,6 @@
 		response = result;
 		execute();
 	});
-	console.log(response);
 	}
 	
 	function displayError(indicator){
