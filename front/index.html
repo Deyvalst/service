@@ -55,7 +55,7 @@
           <div className="h4 col">
             Введите данные
           </div>
-          <EnteringStateButton effect={switchPanelState}/>
+          <EnteringStateButton effect={switchPanelState} activeState={altered}/>
         </div>
         <form id="entering">
           <p className="form-floating">
@@ -129,10 +129,15 @@
       );
     }
 
-    function EnteringStateButton({effect}) {
+    function EnteringStateButton({effect, activeState}) {
       function handleTap(){
-        AlterState();
-        effect(true);		
+		if(!activeState){
+        AlterState("Авторизация");
+		state_info = "Регистрация";}
+		else {
+		AlterState("Регистрация");
+		state_info = "Авторизация";}
+        effect(!activeState);
       }
       return (
         <div className="col text-end switch">
@@ -146,7 +151,7 @@
                 viewBox="0 0 16 16" >
               <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
             </svg></button>
-          <span> <u>Авторизация</u></span>
+          <span> <u>{state_info}</u></span>
         </div>
       );
     }
@@ -290,6 +295,7 @@
   </script>
   <script>
   let response,userAccessToken,current = new Date();
+  let state_info = "Авторизация";
 	//	show and hide present order confirmation's dialog
     function ToggleOptions(mode) {
       document.getElementById('order_options').disabled = mode;
@@ -302,14 +308,13 @@
       }
     }
 	//	switch sign-panel state to be used for authorization instead
-    function AlterState() {
-      document.getElementById('state_info').innerHTML = "Авторизация";
-      document.getElementsByClassName('switch')[0].hidden = true;
+    function AlterState(new_state) {
+      document.getElementById('state_info').innerHTML = new_state;
 	  document.getElementsByClassName("alert")[0].className = "alert";
 	  document.getElementsByClassName("alert")[0].textContent = "";
       for (var x of document.getElementsByClassName('special')){
-        x.disabled = true;
-        x.required = false;
+        x.disabled = !x.disabled;
+        x.required = !x.required;
       }
     }
 	
@@ -338,5 +343,17 @@
 </head>
 <body>
   <p><div id="entire"></div></p>
+  <style>
+body {
+	background: #e9fee0;
+	color: #20686c;}
+.btn-primary {
+	--bs-btn-bg: #5988f0;
+	--bs-btn-border-color: auto;}
+.form-control {
+	color: #196c6c;}
+.form-floating>label {
+	color: #a2b6d2;}
+</style>
 </body>
 </html>
