@@ -13,32 +13,39 @@
     import { createRoot } from 'https://esm.sh/react-dom@18.2.0';
 
     export default function Entire() {
-      var activeComponent = <EnteringPanel interaction={refreshContent} />;
+	  var activeComponent = <EnteringPanel interaction={refreshContent} />;
       const [component, setComponent] = useState(activeComponent);
+	  const [head_text, refreshHeader] = useState(["ВХОД"]);
 
       function refreshContent(request) {
 		var query_data = {"authorization": "Bearer "+userAccessToken};
         if (request == "enter") {
 		  activeComponent = <PrivateCabinet interaction={refreshContent} />;
-		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings", contentType: "application/json", headers:query_data},function(){setComponent(activeComponent);});
+		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings", contentType: "application/json", headers:query_data},
+		  function(){setComponent(activeComponent); refreshHeader(["ЛИЧНЫЙ КАБИНЕТ",userinfo]);});
         } 
         else if (request == "reserve") {
-		  query_data = {"authorization": "Bearer "+userAccessToken};
           activeComponent = <PrepareOrder interaction={refreshContent} />;
-		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings/tables", contentType: "application/json", headers:query_data, data:{date: current.toISOString().split("T")[0],time:current.getHours().toString().padStart(2,0)+':'+current.getMinutes().toString().padStart(2,0)}},function(){setComponent(activeComponent);});
+		  ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings/tables", contentType: "application/json", headers:query_data, 
+		  data:{date: current.toISOString().split("T")[0],time:'15:15'}},
+		  function(){setComponent(activeComponent); refreshHeader(["КАТАЛОГ ВЫБОРА",userinfo]);});
+		  //ServerCommand({method:"GET", url:"https://restroreserve-api.onrender.com/api/bookings/tables", contentType: "application/json", headers:query_data, data:{date: current.toISOString().split("T")[0],time:current.getHours().toString().padStart(2,0)+':'+current.getMinutes().toString().padStart(2,0)}},function(){setComponent(activeComponent);});
         }
         else {
+		  refreshHeader(["ВХОД"]);
 		  setComponent(activeComponent);
         }
+		
       }
 
       return (
-        <main className="container">
+        <><header><table className="container"><tr className="d-flex"><span id="page">{head_text[0]}</span><span className="ms-auto" id="user">{head_text[1]}</span></tr></table></header><br />
+		<main className="container">
           {component}
-        </main>
+        </main></>
       );
     }
-	
+	//var options = slots_list.map(each_slot => <input type="button" class="list-group-item" onclick= value={each_slot.table}>#{each_slot.table} (x{each_slot.seats_count}) />);
 //	sign-related panel via customer data handling, register/authorize state included, opens with application start 
     function EnteringPanel({interaction}) {
       const [altered, setAltered] = useState(false);
@@ -51,7 +58,8 @@
       }
 
       return (
-        <><div className="row">
+		
+		<><div className="row">
           <div className="h4 col">
             Введите данные
           </div>
@@ -105,7 +113,7 @@
           if(activeState) {
 			query_data = '{"email":"'+enterform.customer_email.value+'", "password":"'+enterform.customer_code.value+'"}';
 			ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/auth/login", data:query_data, contentType: "application/json", error: function(result){
-				enterform.reset(); 
+				//enterform.reset(); 
 				response = result; 
 				displayError(document.getElementsByClassName("alert")[0]);}},
 			function(){userAccessToken = response.token; effect("enter"); });
@@ -113,7 +121,7 @@
           else {
 			query_data = '{"email":"'+enterform.customer_email.value+'", "password":"'+enterform.customer_code.value+'", "name":"'+enterform.customer_label.value+'", "phone":"'+enterform.customer_phone.value+'"}';
             ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/auth/register", data:query_data, contentType: "application/json", error: function(result){
-				enterform.reset(); 
+				//enterform.reset(); 
 				response = result; 
 				displayError(document.getElementsByClassName("alert")[0]);}},
 			function(){userAccessToken = response.token; effect("reserve"); });
@@ -173,7 +181,6 @@
 
       return (
         <div id="private_cabinet">
-          <h4>Личный кабинет</h4>
           <ul>
             <li>Назначен: {order_slot_name}</li>
             <li>Время: {order_date} - {order_time}</li>
@@ -209,25 +216,20 @@
 //	!
 		var slots_list = response.booking;
 		}
-		var options = slots_list.map(each_slot => <option value={each_slot.table}>#{each_slot.table} (x{each_slot.seats_count})</option>);
+		var options = slots_list.map(each_slot => <input name={each_slot.table} type="button" class="list-group-item" value={"#"+each_slot.table+" (x"+each_slot.seats_count+")"}/>);
       function buttonEffect(argument){
         interaction(argument);
       }
 
       return (
         <form id="prepare_order">
-          <h4>Каталог выбора</h4>
-          <select 
-            id="order_options" 
-            className="form-select-lg mb-3" 
-            onChange={() => ToggleOptions(true)} 
-            required={true} >
-            <option>Подобрать</option>
-            {options}
-          </select>
+		  <div class="list-group" id="order_options" 
+		  onClick={() => ToggleOptions(true,event.srcElement.name)} 
+		  required={true}>
+		  {options}
+		  </div>
           <dialog id="confirm" className="bg-body-secondary">
           <ConfirmOrderPanel />
-          <p></p>
           <div className="row">
             <div className="col">
               <ResetOrderButton />
@@ -241,20 +243,20 @@
 //	confirmation panel to define date and time then send order, shows after choosing slot	
     function ConfirmOrderPanel() {
       return (
-        <><h4>Назначить бронирование</h4>
+        <><h4>Назначить бронирование</h4><br />
           <div className="row">
             <div className="col">
-              <input type="date" className="form-control" min={current.toISOString().split("T")[0]} required />
+              <input type="date" id="order_value1" className="form-control" min={current.toISOString().split("T")[0]} required />
             </div></div>
           <div className="row">
             <div className="col">
               <input 
                 type="time" 
-                className="form-control" 
+                className="form-control"  id="order_value2"
                 min="12:00" 
                 max="22:00" 
-                required={true} />
-            <p /><div class="alert" role="alert"></div>
+                required={true} /><p />
+            <div class="alert" role="alert"></div>
 			</div></div></>
       );
     }
@@ -270,7 +272,7 @@
       function handleTap() {
 		orderform = document.forms["prepare_order"];
         if(orderform.checkValidity()){
-		query_data = '{"tableNumber": '+document.getElementById("order_options").value+', "date":"'+orderform[1].value+'", "time":"'+orderform[2].value+'"}';
+		query_data = '{"tableNumber": '+option_value+', "date":"'+document.getElementById("order_value1").value+'", "time":"'+document.getElementById("order_value2").value+'"}';
 		  ServerCommand({method: "POST", url: "https://restroreserve-api.onrender.com/api/bookings", data:query_data, contentType: "application/json", headers:{"authorization": "Bearer "+userAccessToken}, error: function(result){ 
 			response = result; 
 			displayError(document.getElementsByClassName("alert")[0]);}},
@@ -294,13 +296,15 @@
     );
   </script>
   <script>
-  let response,userAccessToken,current = new Date();
+  let userinfo,option_value,response,userAccessToken;
+  let current = new Date();
   let state_info = "Авторизация";
 	//	show and hide present order confirmation's dialog
-    function ToggleOptions(mode) {
+    function ToggleOptions(mode, tag) {
       document.getElementById('order_options').disabled = mode;
       var orderModal = document.getElementById('confirm');
       if (mode) {
+		option_value = tag;
         orderModal.showModal();
       } else {
 		document.getElementsByClassName("alert")[0].textContent = "";
@@ -342,10 +346,13 @@
   </script>
 </head>
 <body>
-  <p><div id="entire"></div></p>
-  <style>
+  <div id="entire"></div>
+</body>
+<style>
 body {
 	background: #e9fee0;
+	color: #20686c;}
+dialog {
 	color: #20686c;}
 .btn-primary {
 	--bs-btn-bg: #5988f0;
@@ -354,6 +361,34 @@ body {
 	color: #196c6c;}
 .form-floating>label {
 	color: #a2b6d2;}
+#order_options {
+	height: 325px;
+	overflow-y: auto;
+	border: 2px solid;}
+#order_options input {
+	padding: 21px;
+	font-size: 26px;
+	color: #196c6c;
+	outline-style: auto;
+	outline-offset: -2px;
+	background: ivory;
+	outline-color: #cccccc;}
+header {
+	background: palegoldenrod;
+	padding: 10px;
+	}
+header span {
+	font-size: 28px;
+	color: black;
+	}
+#page {
+	padding: 10px;
+	font-weight: 500;}
+#user {
+	font-size: 20px;
+	padding: 10px;
+	padding-bottom: 0;
+	margin-top:5px;
+}
 </style>
-</body>
 </html>
